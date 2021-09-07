@@ -1,0 +1,127 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Cloudformation Template to deploy Amazon Connect Lambda Function and S3 Bucket.
+
+# Metadata: 
+
+Parameters:
+  FunctionName:
+    Description: Name of the Amazon Connect lambda function.
+    Type: String
+    Default: AmazonConnect
+  MemorySize:
+    Description: Memory allocated to lambda Function.
+    Type: Number
+    Default: 128
+  RunTime:
+    Description: Runtime (language) for lambda function.
+    Type: String
+    Default: python3.8
+  UserName:
+    Description: Amazon Connect Admin User Name
+    Type: String
+    Default: connectadmin
+  FirstName:
+    Description: Amazon Connect Admin User First Name
+    Type: String
+    Default: Connect
+  LastName:
+    Description: Amazon Connect Admin User First Name
+    Type: String
+    Default: Admin
+  Email:
+    Description: Amazon Connect Admin User email address
+    Type: String
+    Default: connectadmin@company.com
+  LambdaBucket:
+    Description: Lambda Code Bucket
+    Type: String
+    Default: leaven-control-tower-customization-bucket
+  ZipFile:
+    Description: Lambda Zip file name
+    Type: String
+    Default: index.zip
+  Origin1:
+    Description: Approved Origin for amazon connect instance
+    Type: String
+    Default: https://www.example.com
+  Identity:
+    Description: Amazon Connect Instance Identity Provider 
+    Type: String
+    AllowedValues:
+      - CONNECT_MANAGED
+      - SAML
+    Default: CONNECT_MANAGED
+  InstanceName:
+    Description: Amazon connect Instance Name
+    Type: String
+    Default: connect-instance-name
+Resources:
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Lambda Function to create Amazon Connect Instance.
+      FunctionName: !Sub '${FunctionName}'
+      Handler: "index.lambda_handler"
+      MemorySize: !Sub '${MemorySize}'
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Runtime: !Sub '${RunTime}'
+      Environment:
+        Variables:
+          LOG_LEVEL: INFO
+          UserName: !Sub ${UserName}
+          SecretArn: !Sub ${ConnectAdminSecret}
+          FirstName: !Sub ${FirstName}
+          LastName: !Sub ${LastName}
+          Email: !Sub ${Email}
+          Origin1: !Sub ${Origin1}
+          Identity: !Sub ${Identity}
+          ConnectInstanceName: !Sub ${InstanceName}
+      Timeout: 300
+      Code:
+        S3Bucket: !Sub ${LambdaBucket}
+        S3Key: !Sub ${ZipFile}
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+         -
+          Effect: "Allow"
+          Principal:
+            Service:
+              - "lambda.amazonaws.com"
+          Action:
+            - "sts:AssumeRole"
+      ManagedPolicyArns: # AWS managed policies
+       - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+       - "arn:aws:iam::aws:policy/AmazonConnect_FullAccess"
+       - "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+       - "arn:aws:iam::aws:policy/IAMFullAccess"
+      Policies:
+        - PolicyName: lambda-secrets-access
+          PolicyDocument:
+            Statement:
+            - Effect: Allow
+              Action:
+                # Rules which allow Lambda execution role to provide access to the Secrets Manager secrets
+                - 'ssm:GetParameters'
+                - 'secretsmanager:GetSecretValue'
+                - 'kms:Decrypt'
+              Resource: '*'
+  ConnectAdminSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: 'This is amazon connect admin username secret'
+      GenerateSecretString:
+        SecretStringTemplate: !Sub '{"username": "${UserName}"}'
+        GenerateStringKey: 'password'
+        PasswordLength: 16
+        ExcludeCharacters: '"@/\'
+Outputs:
+  LambdaFunctionArn:
+    Value:
+      !GetAtt LambdaFunction.Arn
+  LambdaExecutionRoleArn:
+    Value:
+      !GetAtt LambdaExecutionRole.Arn

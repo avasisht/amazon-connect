@@ -2,8 +2,8 @@
 
 export AWS_REGION=ap-southeast-2
 if [ $# -lt 3 ] || [ $# -gt 3 ] ; then
-    echo "Usage: connect.sh <Connect Instance Name> <Identity> <AWS Profile name>"
-    echo "Example: connect.sh <my-instance-name> <SAML|CONNECT_MANAGED> <AWS Profile Name>"
+    echo "Usage: bash connect.sh <Connect Instance Name> <Identity> <AWS Profile name>"
+    echo "Example: bash connect.sh <my-instance-name> <SAML|CONNECT_MANAGED> <AWS Profile Name>"
     exit 1
 fi
 

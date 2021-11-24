@@ -16,26 +16,10 @@ Parameters:
     Description: Runtime (language) for lambda function.
     Type: String
     Default: python3.8
-  UserName:
-    Description: Amazon Connect Admin User Name
-    Type: String
-    Default: connectadmin
-  FirstName:
-    Description: Amazon Connect Admin User First Name
-    Type: String
-    Default: Connect
-  LastName:
-    Description: Amazon Connect Admin User First Name
-    Type: String
-    Default: Admin
-  Email:
-    Description: Amazon Connect Admin User email address
-    Type: String
-    Default: connectadmin@company.com
   LambdaBucket:
     Description: Lambda Code Bucket
     Type: String
-    Default: leaven-control-tower-customization-bucket
+    Default: my-s3-bucket
   ZipFile:
     Description: Lambda Zip file name
     Type: String
@@ -68,11 +52,6 @@ Resources:
       Environment:
         Variables:
           LOG_LEVEL: INFO
-          UserName: !Sub ${UserName}
-          SecretArn: !Sub ${ConnectAdminSecret}
-          FirstName: !Sub ${FirstName}
-          LastName: !Sub ${LastName}
-          Email: !Sub ${Email}
           Origin1: !Sub ${Origin1}
           Identity: !Sub ${Identity}
           ConnectInstanceName: !Sub ${InstanceName}
@@ -109,15 +88,6 @@ Resources:
                 - 'secretsmanager:GetSecretValue'
                 - 'kms:Decrypt'
               Resource: '*'
-  ConnectAdminSecret:
-    Type: AWS::SecretsManager::Secret
-    Properties:
-      Description: 'This is amazon connect admin username secret'
-      GenerateSecretString:
-        SecretStringTemplate: !Sub '{"username": "${UserName}"}'
-        GenerateStringKey: 'password'
-        PasswordLength: 16
-        ExcludeCharacters: '"@/\'
 Outputs:
   LambdaFunctionArn:
     Value:
